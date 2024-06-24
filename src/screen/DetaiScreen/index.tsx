@@ -1,33 +1,32 @@
+import HeaderTitle from '@/components/HeaderTitle';
+import {ScreenName} from '@/config/ScreenName';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, {useEffect, useState} from 'react';
 import {
+  FlatList,
+  Modal,
+  StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
-  Modal,
-  TextInput,
-  FlatList,
-  StyleSheet,
 } from 'react-native';
-import React, {useState, useEffect} from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {ScreenName} from '@/config/ScreenName';
 
-interface IFolder {
-  id: number;
-  name: string;
-  image: string;
-}
-
-const Home = (props: any) => {
-  const {navigation} = props;
-  const [folder, setFolder] = useState<IFolder[]>([]);
+const DetailHome = (props: any) => {
+  const {navigation, route} = props;
+  const {folder} = route.params;
+  console.log(folder, 'folder');
+  const [data, setData] = useState<any[]>([]);
   const [visible, setVisible] = useState(false);
-  const [name, setName] = useState('');
+  const [word, setWord] = useState('');
+  const [mean, setMean] = useState('');
+
   useEffect(() => {
     const loadFolders = async () => {
       try {
-        const savedFolders = await AsyncStorage.getItem('folders');
+        const savedFolders = await AsyncStorage.getItem(folder.name);
         if (savedFolders) {
-          setFolder(JSON.parse(savedFolders));
+          setData(JSON.parse(savedFolders));
         }
       } catch (error) {
         console.error('Failed to load folders from storage', error);
@@ -37,52 +36,61 @@ const Home = (props: any) => {
     loadFolders();
   }, []);
 
-  const saveFolders = async (folders: IFolder[]) => {
+  const saveWords = async (words: any[]) => {
     try {
-      await AsyncStorage.setItem('folders', JSON.stringify(folders));
+      await AsyncStorage.setItem(folder.name, JSON.stringify(words));
     } catch (error) {
       console.error('Failed to save folders to storage', error);
     }
   };
 
   const onAdd = () => {
-    const newData = [...folder];
+    const newData = [...data];
     const b = newData.find(item => {
-      return item.name === name;
+      return item.word === word;
     });
     if (b) {
       return;
     }
+    console.log('vao day');
 
-    const newFolder = {
-      id: folder.length + 1,
-      name: name,
-      image: 'string',
+    const newWords = {
+      id: data?.length + 1,
+      word: word,
+      mean: mean,
     };
-
-    const updatedFolders = [...folder, newFolder];
-    setFolder(updatedFolders);
-    saveFolders(updatedFolders);
-
+    const updatedFolders = [...data, newWords];
+    setData(updatedFolders);
+    saveWords(updatedFolders);
     setVisible(false);
-    setName('');
+    setWord('');
+    setMean('');
   };
+  console.log(data, 'data>>>>>');
 
   const onDelete = (id: number) => {
-    let updatedFolder = folder.filter(item => item.id !== id);
-    const updatedFolders = updatedFolder.map((item, index) => ({
-      ...item,
-      id: index + 1,
-    }));
-    setFolder(updatedFolders);
-    saveFolders(updatedFolders);
+    // let updatedFolder = folder.filter(item => item.id !== id);
+    // const updatedFolders = updatedFolder.map((item, index) => ({
+    //   ...item,
+    //   id: index + 1,
+    // }));
+    // setFolder(updatedFolders);
+    // saveFolders(updatedFolders);
   };
 
-  const renderItem = ({item}: {item: IFolder}) => (
+  const renderItem = ({item}: {item: any}) => (
     <TouchableOpacity
-      onPress={() => navigation.navigate(ScreenName.DetailHome, {folder: item})}
+      // onPress={() =>
+      //   navigation.navigate(ScreenName.FlashCard, {
+      //     item: item,
+      //   })
+      // }
+      onPress={() => navigation.navigate(ScreenName.Login)}
       style={styles.folderItem}>
-      <Text style={styles.folderText}>{item.name}</Text>
+      <View>
+        <Text style={styles.txtWord}>{item.word}</Text>
+        <Text style={styles.txtMean}>{item.mean}</Text>
+      </View>
       <TouchableOpacity
         onPress={() => onDelete(item.id)}
         style={styles.deleteButton}>
@@ -93,9 +101,9 @@ const Home = (props: any) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.headerText}>Topic</Text>
+      <HeaderTitle title={folder.name} />
       <FlatList
-        data={folder}
+        data={data}
         renderItem={renderItem}
         keyExtractor={item => item.id.toString()}
         contentContainerStyle={{flexGrow: 1}}
@@ -117,12 +125,22 @@ const Home = (props: any) => {
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.textInput}
-                value={name}
-                onChangeText={text => setName(text)}
-                placeholder="Enter name here"
+                value={word}
+                onChangeText={text => setWord(text)}
+                placeholder="Enter word here"
+                placeholderTextColor={'grey'}
+              />
+              <TextInput
+                style={styles.textInput}
+                value={mean}
+                onChangeText={text => setMean(text)}
+                placeholder="Enter mean here"
                 placeholderTextColor={'grey'}
               />
             </View>
+            <TouchableOpacity onPress={onAdd} style={styles.confirmButton}>
+              <Text style={styles.confirmButtonText}>Học bài</Text>
+            </TouchableOpacity>
             <TouchableOpacity onPress={onAdd} style={styles.confirmButton}>
               <Text style={styles.confirmButtonText}>Add</Text>
             </TouchableOpacity>
@@ -132,6 +150,8 @@ const Home = (props: any) => {
     </View>
   );
 };
+
+export default DetailHome;
 
 const styles = StyleSheet.create({
   container: {
@@ -161,8 +181,13 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  folderText: {
-    fontSize: 16,
+  txtWord: {
+    fontSize: 26,
+    color: '#000000',
+    fontWeight: '700',
+  },
+  txtMean: {
+    fontSize: 13,
     color: '#333',
   },
   deleteButton: {
@@ -207,6 +232,7 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 2},
     shadowRadius: 4,
     elevation: 3,
+    height: '50%',
   },
   closeButton: {
     alignItems: 'flex-end',
@@ -229,6 +255,7 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingHorizontal: 10,
     color: '#333',
+    marginVertical: 10,
   },
   confirmButton: {
     width: '100%',
@@ -243,4 +270,3 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
 });
-export default Home;
